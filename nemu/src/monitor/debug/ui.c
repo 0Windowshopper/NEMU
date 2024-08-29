@@ -39,6 +39,7 @@ static int cmd_q(char *args) {
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
+static int cmd_ck(char *args);
 
 static struct {
 	char *name;
@@ -50,6 +51,7 @@ static struct {
 	{ "q", "Exit NEMU", cmd_q },
 	{ "si", "One step", cmd_si },
 	{ "info", "Display all informations of registers", cmd_info },
+	{ "ck", "Check out the memory", cmd_ck},
 	/* TODO: Add more commands */
 
 };
@@ -110,6 +112,32 @@ static int cmd_info(char *args){
 		return 0;
 	}
 	printf("MISINPUT\n");
+	return 0;
+}
+
+static int cmd_ck(char *args){
+	char *secondWord = strtok(NULL," ");
+	char *thirdWord = strtok(NULL," ");
+
+	int step = 0;
+	swaddr_t address;
+
+	sscanf(secondWord, "%d", &step);
+	sscanf(thirdWord, "%x", &address);
+
+	int i, j = 0;
+	for (i = 0; i < step; i++){
+		if(j % 4 == 0){
+			printf("0x%x:",address);
+		}
+		printf("0x%08x", swaddr_read(address, 4));
+		address += 4;
+		j++;
+		if (j % 4 == 0){
+			printf("\n");
+		}
+	}
+	printf("\n");
 	return 0;
 }
 
