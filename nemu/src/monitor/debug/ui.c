@@ -38,6 +38,7 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 static int cmd_si(char *args);
+static int cmd_info(char *args);
 
 static struct {
 	char *name;
@@ -48,7 +49,7 @@ static struct {
 	{ "c", "Continue the execution of the program", cmd_c },
 	{ "q", "Exit NEMU", cmd_q },
 	{ "si", "One step", cmd_si },
-
+	{ "info", "Display all informations of registers", cmd_info },
 	/* TODO: Add more commands */
 
 };
@@ -86,9 +87,29 @@ static int cmd_si(char *args){
 		cpu_exec(1);
 		return 0;
 	}
-	for (i=0; i < step; i++){
+	sscanf(secondWord, "%d", &step);
+	if(step <= 0){
+		printf("MISINPUT\n");
+		return 0;
+	}
+	for (i = 0; i < step; i++){
 		cpu_exec(1);
 	}
+	return 0;
+}
+
+static int cmd_info(char *args){
+	char *secondWord = strtok(NULL," ");
+	int i;
+	if(strcmp(secondWord, "r") == 0){
+		for (i = 0; i < 8; i++){
+			printf("%s\t\t",regsl[i]);
+			printf("0x%08x\t\t%d\n", cpu.gpr[i]._32, cpu.gpr[i]._32);
+		}
+		printf("eip\t\t0x%08x\t\t%d\n",cpu.eip,cpu.eip);
+		return 0;
+	}
+	printf("MISINPUT\n");
 	return 0;
 }
 
