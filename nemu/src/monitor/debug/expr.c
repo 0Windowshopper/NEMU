@@ -208,14 +208,146 @@ int dominant_operator(int l, int r)
 	return operator;
 }
 
+uint32_t eval(int l, int r)
+{
+	if (l > r)
+	{
+		assert(0);
+	}
+	else if (l == r)
+	{
+		int num;
+		if (tokens[l].type == DIGIT)
+		{
+			sscanf(tokens[l].str, "%d", &num);
+		}
+		if (tokens[l].type == HEX)
+		{
+			sscanf(tokens[l].str, "%x", &num);
+		}
+		if (tokens[l].type == REGISTER)
+		{
+			if (strlen(tokens[l].str) == 3)
+			{
+			    if (strcmp(tokens[l].str, "eip") == 0)
+						{
+							num = cpu.eip;
+						}
+				int i;
+				for (i = R_EAX; i <= R_EDI; i++)
+				{
+					if (strcmp(tokens[l].str, regsl[i]) == 0)
+					{
+						return cpu.gpr[i]._32;
+					}
+
+
+
+				}
+			}
+			else if (strlen(tokens[l].str) == 2)
+			{
+				int i;
+				for (i = R_AX; i <= R_DI; i++)
+				{
+					if (strcmp(tokens[l].str, regsw[i]) == 0)
+					{
+						break;
+					}
+					num = cpu.gpr[i]._16;
+				}
+			}
+			else
+			{
+				int i;
+				for (i = R_AL; i <= R_BH; i++)
+				{
+					if (strcmp(tokens[l].str, regsb[i]) == 0)
+					{
+						break;
+					}
+					num = cpu.gpr[i & 0x3]._8[i >> 2];
+				}
+			}
+		}
+		return num;
+	}
+	else
+	{
+		if (check_parentheses(l, r))
+		{
+			return eval(l + 1, r - 1);
+		}
+		else
+		{
+			int operator= dominant_operator(l, r);
+			   if(l==operator&&(tokens[operator].type==POINTER||tokens[operator].type==NEG||tokens[operator].type=='!'))
+			   {
+				   uint32_t value = eval(l + 1, r);
+				   switch (tokens[l].type)
+				   {
+				   case '!':
+					   return !value;
+				   case NEG:
+					   return -value;
+				   case POINTER:
+					   return swaddr_read(value, 4);
+				   default:
+					   assert(0);
+				   }
+			   }
+			   uint32_t value1 = eval(l, operator- 1);
+			   uint32_t value2 = eval(operator+ 1, r);
+			   switch(tokens[operator].type)
+			   {
+			   case '+':
+				   return value1 + value2;
+			   case '*':
+				   return value1 * value2;
+			   case '-':
+				   return value1 - value2;
+			   case '/':
+				   return value1 / value2;
+			   case AND:
+				   return value1 && value2;
+			   case OR:
+				   return value1 || value2;
+			   case EQ:
+				   return value1 == value2;
+			   case NEQ:
+				   return value1 != value2;
+			   default:
+				   assert(0);
+				   break;
+			   }
+		}
+	}
+}
+
+
 uint32_t expr(char *e, bool *success) {
 	if(!make_token(e)) {
 		*success = false;
 		return 0;
 	}
+		int i;
+	for (i = 0; i < nr_token; i++)
+	{
+		if (tokens[i].type == '*' && (i == 0 || (tokens[i - 1].type != DIGIT && tokens[i - 1].type != HEX && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')))
+		{
+			tokens[i].type = POINTER;
+			tokens[i].precedence = 6;
+		}
+		if (tokens[i].type == '-' && (i == 0 || (tokens[i - 1].type != DIGIT && tokens[i - 1].type != HEX && tokens[i - 1].type != REGISTER && tokens[i - 1].type != ')')))
+		{
+			tokens[i].type = NEG;
+			tokens[i].precedence = 6;
+		}
+	}
+
 
 	/* TODO: Insert codes to evaluate the expression. */
-	panic("please implement me");
-	return 0;
+	*success = true;
+	return eval(0, nr_token - 1);
 }
 
