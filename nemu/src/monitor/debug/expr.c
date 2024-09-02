@@ -8,23 +8,15 @@
 #include <stdlib.h> // 添加头文件以支持atoi函数
 
 
-
-// ... 其他代码 ...
-
-// 定义division_zero变量
-
-
-// ... 其他代码 ...
-
 enum {
 	NOTYPE = 256, 
 EQ=257,
 NEQ=258, 
 AND=259,
- OR=260,
- NOT=261, 
+OR=260,
+NOT=261, 
 HEX=262,
- REG=263, 
+REG=263, 
 NUM=264, 	
 NEG, DEF
 
