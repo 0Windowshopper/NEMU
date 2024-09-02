@@ -32,23 +32,23 @@ static struct rule {
 
 	{" +",	NOTYPE},				
 
-	{"\\+", '+'},	
-	{"\\-", '-'},   
-	{"\\*", '*'},   
-	{"\\/", '/'},   
+	{"\\+", '+'},	//plus
+	{"\\-", '-'},   //minus
+	{"\\*", '*'},   //times
+	{"\\/", '/'},   //divided by
 
 	{"\\$[a-z]+", RESGISTER},
 	{"0[xX][0-9a-fA-F]+", HEX},
 	{"[0-9]+", NUM},
 
-	{"==", EQ},
-	{"!=", NOTEQ},
+	{"==", EQ},    //equal
+	{"!=", NOTEQ},    //not equal
 
 	{"\\(", '('},
 	{"\\)", ')'},
 
-	{"\\|\\|", OR},
-	{"&&", AND},
+	{"\\|\\|", OR},    //or
+	{"&&", AND},    //and
 	{"!",'!'},
 };
 
@@ -101,23 +101,111 @@ static bool make_token(char *e) {
 				/* TODO: Now a new token is recognized with rules[i]. Add codes
 				 * to record the token in the array `tokens'. For certain types
 				 * of tokens, some extra actions should be performed.
-				 */
+				*/
 
-				switch(rules[i].token_type) {
-					default: panic("please implement me");
+
+				switch (rules[i].token_type)
+				{
+				case NOTYPE:
+					break;
+				case REGISTER:
+					tokens[nr_token].type = rules[i].token_type;
+					tokens[nr_token].precedence = rules[i].precedence;
+					sprintf(tokens[nr_token].str, "%.*s", substr_len - 1, for_register);
+					tokens[nr_token].str[substr_len - 1] = '\0';
+					nr_token++;
+					break;
+				default:
+					tokens[nr_token].type = rules[i].token_type;
+					tokens[nr_token].precedence = rules[i].precedence;
+					sprintf(tokens[nr_token].str, "%.*s", substr_len, substr_start);
+					tokens[nr_token].str[substr_len] = '\0';
+					nr_token++;
 				}
 
 				break;
 			}
 		}
 
-		if(i == NR_REGEX) {
+		if (i == NR_REGEX)
+		{
 			printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
 			return false;
 		}
 	}
 
-	return true; 
+	return true;
+}
+
+bool check_parentheses(int l, int r)
+{
+	if (tokens[l].type == '(' && tokens[r].type == ')')
+	{ 
+		int index;
+		int lcnt = 0, rcnt = 0;
+		for (index = l + 1; index < r; index++)
+		{
+			if (tokens[index].type == '(')
+			{
+				lcnt++;
+			}
+			if (tokens[index].type == ')')
+			{
+				rcnt++;
+			}
+			if (rcnt > lcnt)
+			{
+				return false;
+			}
+		}
+		if (lcnt == rcnt)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+int dominant_operator(int l, int r)
+{
+	int operator= l;
+	int m, n;
+	int min_precedence = 8;
+	for (m = l; m <= r; m++)
+	{
+		if (tokens[m].type == DIGIT || tokens[m].type == HEX || tokens[m].type == REGISTER)
+		{
+			continue;
+		}
+		int count = 0;
+		bool flag = true;
+		for (n = m - 1; n >= l; n--)
+		{
+			if (tokens[n].type == '(' && count == 0)
+			{
+				flag = false;
+				break;
+			}
+			if (tokens[n].type == '(')
+			{
+				count--;
+			}
+			if (tokens[n].type == ')')
+			{
+				count++;
+			}
+		}
+		if (!flag)
+		{
+			continue;
+		};
+		if (tokens[m].precedence < min_precedence)
+		{
+			min_precedence = tokens[m].precedence;
+			operator= m;
+		}
+	}
+	return operator;
 }
 
 uint32_t expr(char *e, bool *success) {
