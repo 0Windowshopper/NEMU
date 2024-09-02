@@ -39,7 +39,7 @@ static int cmd_q(char *args) {
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
-static int cmd_ck(char *args);
+static int cmd_x(char *args);
 static int cmd_p(char *args);
 
 static struct {
@@ -52,7 +52,7 @@ static struct {
 	{ "q", "Exit NEMU", cmd_q },
 	{ "si", "One step", cmd_si },
 	{ "info", "Display all informations of registers", cmd_info },
-	{ "ck", "Check out the memory", cmd_ck},
+	{ "x", "Check out the memory", cmd_x},
 	{ "p","Token equal", cmd_p }
 	/* TODO: Add more commands */
 
@@ -117,7 +117,7 @@ static int cmd_info(char *args){
 	return 0;
 }
 
-static int cmd_ck(char *args){
+static int cmd_x(char *args){
 	char *secondWord = strtok(NULL," ");
 	char *thirdWord = strtok(NULL," ");
 
@@ -144,13 +144,25 @@ static int cmd_ck(char *args){
 }
 
 static int cmd_p(char *args){
-	bool *success = false;
-	int i;
-	i = expr(args, success);
-	if (!success){
-		printf("%d\n", i);
+	
+	if(args==NULL)
+	{
+		printf("unknown command\n");
+		return 0;
 	}
-	return 0;
+	else{
+		bool success=false;
+		uint32_t result=expr(args,&success);
+		if(success==false)
+		{
+			return 0;
+		}
+		else
+		{
+			printf("0x%08x(%d)\n",result,result);
+			return 0;
+		}
+	}
 }
 
 
