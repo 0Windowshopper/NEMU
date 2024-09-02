@@ -8,14 +8,15 @@
 
 enum {
 	NOTYPE = 256,
-	NUM = 1,
-	RESGISTER = 2,
-	HEX = 3,
-       	EQ = 4,
-	NOTEQ = 5,
-	OR = 6,
-	AND = 7,
-	POINT, NEG
+	NUM,
+	RESGISTER,
+	HEX,
+       	EQ,
+	NOTEQ,
+	OR,
+	AND,
+	POINT, 
+	NEG
 
 	/* TODO: Add more token types */
 
@@ -29,27 +30,23 @@ static struct rule {
 	/* TODO: Add more rules.
 	 * Pay attention to the precedence level of different rules.
 	 */
+	{"\\b[0-9]+\\b", DIGIT, 0},		  // degit
+	{"\\b0x[a-fA-F0-9]+\\b", HEX, 0}, // hex
+	{"\\$[a-zA-Z]+", REGISTER, 0},	  // register
+	{"	+", NOTYPE, 0},				  // tab
+	{" +", NOTYPE, 0},				  // spaces
+	{"\\+", '+', 4},				  // plus
+	{"-", '-', 4},					  // minus
+	{"\\*", '*', 5},				  // multiple
+	{"/", '/', 5},					  // divide
+	{"!", '!', 6},					  // not
+	{"&&", AND, 2},					  // and
+	{"\\|\\|", OR, 1},				  // or
+	{"==", EQ, 3},					  // equal
+	{"!=", NEQ, 3},					  // not equal
+	{"\\(", '(', 7},				  // left (
+	{"\\)", ')', 7},				  // right )
 
-	{" +",	NOTYPE},				
-
-	{"\\+", '+'},	//plus
-	{"\\-", '-'},   //minus
-	{"\\*", '*'},   //times
-	{"\\/", '/'},   //divided by
-
-	{"\\$[a-z]+", RESGISTER},
-	{"0[xX][0-9a-fA-F]+", HEX},
-	{"[0-9]+", NUM},
-
-	{"==", EQ},    //equal
-	{"!=", NOTEQ},    //not equal
-
-	{"\\(", '('},
-	{"\\)", ')'},
-
-	{"\\|\\|", OR},    //or
-	{"&&", AND},    //and
-	{"!",'!'},
 };
 
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]) )
