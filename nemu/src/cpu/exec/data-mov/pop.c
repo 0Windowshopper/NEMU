@@ -4,11 +4,9 @@
 #include "pop-template.h"
 #undef DATA_BYTE
 
-#define DATA_BYTE 4
+#define DATA_BYTE 4 
 #include "pop-template.h"
 #undef DATA_BYTE
 
-/* for instruction encoding overloading */
 
 make_helper_v(pop_r)
-make_helper_v(pop_rm)

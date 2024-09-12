@@ -21,12 +21,11 @@ make_helper(concat(decode_i_, SUFFIX)) {
 	return DATA_BYTE;
 }
 
-#if DATA_BYTE == 1 || DATA_BYTE == 2 || DATA_BYTE == 4
+/* WHY just 1 and 4? */
+//#if DATA_BYTE == 1 || DATA_BYTE == 4
 /* sign immediate */
 make_helper(concat(decode_si_, SUFFIX)) {
 	op_src->type = OP_TYPE_IMM;
-	op_src->simm = (DATA_TYPE_S)instr_fetch(eip, DATA_BYTE);
-	op_src->val = op_src->simm;
 
 	/* TODO: Use instr_fetch() to read `DATA_BYTE' bytes of memory pointed
 	 * by `eip'. Interpret the result as an signed immediate, and assign
@@ -34,14 +33,16 @@ make_helper(concat(decode_si_, SUFFIX)) {
 	 *
 	op_src->simm = ???
 	 */
-	//panic("please implement me");
+//	panic("please implement me");
+	op_src->simm =(DATA_TYPE_S)instr_fetch(eip, DATA_BYTE);
+	op_src->val = op_src->imm;
 
 #ifdef DEBUG
 	snprintf(op_src->str, OP_STR_SIZE, "$0x%x", op_src->val);
 #endif
 	return DATA_BYTE;
 }
-#endif
+//#endif
 
 /* eAX */
 static int concat(decode_a_, SUFFIX) (swaddr_t eip, Operand *op) {
@@ -129,7 +130,7 @@ make_helper(concat(decode_i2r_, SUFFIX)) {
 
 /* used by unary operations */
 make_helper(concat(decode_rm_, SUFFIX)) {
-	return decode_rm_internal(eip, op_src, op_src2);		/* op_src2 not use here */
+	return decode_rm_internal(eip, op_src, op_src2);		
 }
 
 make_helper(concat(decode_r_, SUFFIX)) {
@@ -138,7 +139,7 @@ make_helper(concat(decode_r_, SUFFIX)) {
 
 #if DATA_BYTE == 2 || DATA_BYTE == 4
 make_helper(concat(decode_si2rm_, SUFFIX)) {
-	int len = decode_rm_internal(eip, op_dest, op_src2);	/* op_src2 not use here */
+	int len = decode_rm_internal(eip, op_dest, op_src2);	
 	len += decode_si_b(eip + len);
 	return len;
 }
@@ -181,7 +182,7 @@ make_helper(concat(decode_rm_imm_, SUFFIX)) {
 
 void concat(write_operand_, SUFFIX) (Operand *op, DATA_TYPE src) {
 	if(op->type == OP_TYPE_REG) { REG(op->reg) = src; }
-	else if(op->type == OP_TYPE_MEM) { swaddr_write(op->addr, op->size, src); }
+	else if(op->type == OP_TYPE_MEM) { swaddr_write(op->addr, op->size, src, op->sreg); }
 	else { assert(0); }
 }
 

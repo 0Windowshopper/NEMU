@@ -4,10 +4,10 @@
 #include "leave-template.h"
 #undef DATA_BYTE
 
-#define DATA_BYTE 4
+#define DATA_BYTE 4 
 #include "leave-template.h"
 #undef DATA_BYTE
 
-/* for instruction encoding overloading */
 
-make_helper_v(leave_r)
+
+make_helper_v(leave)

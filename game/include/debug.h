@@ -20,7 +20,7 @@ do { \
 #define assert(cond) \
 do { \
 	if(!(cond)) { \
-		panic("Assertion failed: %s", #cond); \
+		assert("Assertion failed: %s", #cond); \
 	} \
 } while(0)
 

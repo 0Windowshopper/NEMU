@@ -12,6 +12,5 @@
 #include "div-template.h"
 #undef DATA_BYTE
 
-/* for instruction encoding overloading */
 
 make_helper_v(div_rm)

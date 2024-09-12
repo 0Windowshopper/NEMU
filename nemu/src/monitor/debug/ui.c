@@ -9,9 +9,11 @@
 
 void cpu_exec(uint32_t);
 
+char *in_which_func(swaddr_t addr);
+
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char* rl_gets() {
-	static char *line_read = NULL;
+	static	char *line_read = NULL;
 
 	if (line_read) {
 		free(line_read);
@@ -19,7 +21,7 @@ char* rl_gets() {
 	}
 
 	line_read = readline("(nemu) ");
-
+//	line_read = readline("");
 	if (line_read && *line_read) {
 		add_history(line_read);
 	}
@@ -27,8 +29,7 @@ char* rl_gets() {
 	return line_read;
 }
 
-uint32_t nr_exp = 0;
-int nr_wp = 0;
+int nr_exp = 0, nr_wp = 0; 
 
 static int cmd_c(char *args) {
 	cpu_exec(-1);
@@ -36,16 +37,26 @@ static int cmd_c(char *args) {
 }
 
 static int cmd_q(char *args) {
+
 	return -1;
 }
 
 static int cmd_help(char *args);
+
 static int cmd_si(char *args);
+
 static int cmd_info(char *args);
+
 static int cmd_x(char *args);
+
 static int cmd_p(char *args);
+
 static int cmd_w(char *args);
+
 static int cmd_d(char *args);
+
+static int cmd_bt(char *args);
+
 static struct {
 	char *name;
 	char *description;
@@ -54,14 +65,17 @@ static struct {
 	{ "help", "Display informations about all supported commands", cmd_help },
 	{ "c", "Continue the execution of the program", cmd_c },
 	{ "q", "Exit NEMU", cmd_q },
-	{ "si", "One step", cmd_si },
+	{ "si", "The program pauses after executing N instructions in a single step(when N is not given, it defaults to 1)", cmd_si},
 	{ "info", "info  r : Print register status, \ninfo w :Print watchpoints.",cmd_info},
-	{ "p", "Print the expression", cmd_p},
-	{ "x", "Scan the RAM", cmd_x},
+	{ "x", "Examine memory: x SIZE ADDRESS.", cmd_x},
+	{ "p", "Print value of the expression", cmd_p},
 	{ "w", "Set a watchpoint for an expression.", cmd_w},
 	{ "d", "Delete a watchpoint.", cmd_d},
+	{ "bt", "Print backtrace of all stack frames.", cmd_bt},
 	/* TODO: Add more commands */
+
 };
+
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
 
@@ -88,44 +102,47 @@ static int cmd_help(char *args) {
 	return 0;
 }
 
-static int cmd_si(char *args){//单步执行
-	char *si_second = strtok(NULL, " ");
-	int step = 0;
-	int i;
-	if(si_second == NULL){//缺省是1
+static int cmd_si(char *args){
+	char *arg = strtok(NULL," ");
+	if(arg==NULL){
 		cpu_exec(1);
 		printf("0x%x\n",cpu.eip);
 		return 0;
 	}
-	sscanf(si_second, "%d", &step);//step存储执行的指令数目
-	if(step <= 0){
-		printf("Error: Less equal than 0!\n");
+	char *endstr = NULL;
+	long int num=strtol(arg,&endstr,0);
+	if((*endstr) != '\0'){
+		printf("Invalid number %s.\n",args);
 		return 0;
 	}
-	if(step > (uint32_t)(-1)){//-1在无符号下的意义是32位最大的数
-		printf("Error: Numeric constant too large.\n");
+	if(num > (uint32_t)(-1)){
+		printf("Numeric constant too large.\n");
 		return 0;
 	}
-	for(i = 0; i < step; ++i){
-		cpu_exec(1);
-	}
+	cpu_exec(num);
 	printf("0x%x\n",cpu.eip);
 	return 0;
 }
-
-static int cmd_info(char *args){//打印寄存器的内容
-	char *info_second = strtok(NULL, " ");
-	int i;
-	if(strcmp(info_second, "r") == 0){
-		for(i = 0; i < 4; ++i){
-			printf("$%s (0x%08x) ", regsl[i], cpu.gpr[i]._32);
-			// printf("%s\t\t", regsl[i]);//使用\t对齐输出
-			// printf("0x%08x\t\t%d\n", cpu.gpr[i]._32, cpu.gpr[i]._32);
-		}
-		// printf("eip\t\t0x%08x\t\t%d\n", cpu.eip, cpu.eip);
-		printf("\n");
+static int cmd_info(char *args){
+	char *arg = strtok(NULL, " ");
+	if(strlen(arg)>1){
+		printf("Undefined info command: \"%s\".  Try \"help info\".\n",args);
 		return 0;
-	}else if(strcmp(info_second, "w") == 0){
+	}
+	if(*arg == 'r'){
+		int i;
+		for(i = R_EAX; i <= R_EDI; i++){
+			printf("%s\t0x%.8x\t%.10u\n", regsl[i], cpu.gpr[i]._32, cpu.gpr[i]._32);
+		}
+		printf("eip\t0x%.8x\t%.10u\n", cpu.eip, cpu.eip);
+		for(i = R_ES;i <= R_CS; i++){
+			printf("%s\t0x%.8x\t%.10u\n",sregs[i], cpu.sr[i].val, cpu.sr[i].val);
+		}
+		printf("gdtr.base\t0x%.8x\t%.10u\n", cpu.gdtr.base, cpu.gdtr.base);
+		printf("gdtr.limit\t0x%.8x\t%.10u\n", cpu.gdtr.limit, cpu.gdtr.limit);
+	}
+	else if(*arg == 'w'){
+		// todo
 		print_wp();	
 	}else{
 		printf("Undefined info command: \"%s\".  Try \"help info\".\n",args);
@@ -134,28 +151,23 @@ static int cmd_info(char *args){//打印寄存器的内容
 	return 0;
 }
 
-static int cmd_x(char *args){//扫描内存
-	char *x_second = strtok(NULL, " ");
-	char *x_third = strtok(NULL, " ");
-	
-	int step = 0;
-	swaddr_t address;
-	sscanf(x_second, "%d", &step);
-	sscanf(x_third, "%x", &address);
-	
-	int i, j = 0;
-	for(i = 0; i < step; ++i){
-		// if(j % 4 == 0){
-			// printf("0x%x:", address);//
-		// }
-		printf("0x%08x ", swaddr_read(address, 4));
-		address += 4;
-		++j;
-		if(j % 4 == 0){
-			puts("");
-		}
+static int cmd_x(char *args){
+	int len = 0;
+	char exp[1024];
+	if(args==NULL || sscanf(args, "%d %[^\n]", &len, exp)!=2){
+		printf("Invalid Arguments %s.\n",args);
+		return 0;
 	}
-	puts("");
+	bool success = true;
+	swaddr_t addr = expr(exp, &success);
+	if(!success){
+		printf("Invalid Address %s.\n",exp);
+		return 0;
+	}
+	int i;
+	for(i = 0;i < len; i++){
+		printf("0x%08x:\t\t0x%08x\n", addr + i * 4, swaddr_read(addr + i * 4, 4, R_DS));
+	}
 	return 0;
 }
 
@@ -163,18 +175,18 @@ static int cmd_p(char *args){
 	bool success = true;
 	uint32_t val = expr(args , &success);
 	if(success){
-		printf("%u\n", val);
-		// printf("$%d = %u (0x%x)\n", nr_exp, val, val);
+		printf("$%d = %u (0x%x)\n", nr_exp, val, val);
+	//	printf("%u\n",val);
 		nr_exp++;
 	}
 	return 0;
 }
 
 static int cmd_w(char *args){
-	bool success = true;//用于表示表达式求值是否成功
+	bool success = true;
 	uint32_t val = expr(args , &success);
-	if(!success){//检查 success 变量是否为 false，如果是，则表示表达式求值失败
-		printf("Error: Invalid expression!\n");
+	if(!success){
+		printf("Invalid expression!\n");
 		return 0;
 	}
 	WP *wp = new_wp();
@@ -183,14 +195,13 @@ static int cmd_w(char *args){
 		wp->old_val = val;
 		wp->new_val = val;
 		wp->NO = nr_wp;
-		// printf("watchpoint %d : %s\n", nr_wp, args);
-		nr_wp++;//增加 nr_wp 的值，为下一个监视点编号做准备
+		printf("watchpoint %d : %s\n", nr_wp, args);
+		nr_wp++;
 	}else{
-		printf("Error: Watchpoint Exceed!\n");
+		printf("Too many watchpoint!\n");
 	}
 	return 0;
 }	
-
 static int cmd_d(char *args){
 	int no;
 	if(sscanf(args,"%d",&no) != 1){
@@ -200,7 +211,36 @@ static int cmd_d(char *args){
 	delete_wp(no);	
 	return 0;
 }
+static int cmd_bt(char *args){
+	if(!cpu.ebp){
+		printf("No stack.");
+	}
+	else{
+		swaddr_t ebp_now = cpu.ebp;
+		swaddr_t ebp_last = cpu.ebp;
+		swaddr_t ret_addr = 0;
+		char *func_name = NULL;
+		int nr_frame = 1, i = 0;
+		printf("#0 %s arg:(%d", in_which_func(cpu.eip), swaddr_read(ebp_last + 8, 4, R_SS));
+		for(i = 1;i <= 3;i ++)
+		      printf(", %d", swaddr_read(ebp_last + 8 + i * 4, 4, R_SS));
+		printf(")\n");
+		while(ebp_now) {
+			ebp_last = swaddr_read(ebp_now, 4, R_SS);
+			ret_addr = swaddr_read(ebp_now + 4, 4, R_SS);
+			func_name = in_which_func(ret_addr);
+			if(!func_name)break;
+			printf("#%d 0x%08x in %s arg:(%d", nr_frame, ret_addr, func_name, swaddr_read(ebp_last + 8, 4, R_SS));
+			for(i = 1;i <= 3;i ++)
+			      printf(", %d", swaddr_read(ebp_last + 8  + i * 4, 4, R_SS));
+			printf(")\n");
+			nr_frame ++;
+			ebp_now = ebp_last;
 
+		}
+	}	
+	return 0;
+}
 void ui_mainloop() {
 	while(1) {
 		char *str = rl_gets();

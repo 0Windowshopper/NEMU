@@ -5,4 +5,7 @@
 #include "memory/memory.h"
 #include "cpu/reg.h"
 
+#include "../../lib-common/x86-inc/mmu.h"
+#include "../../lib-common/x86-inc/cpu.h"
+
 #endif
